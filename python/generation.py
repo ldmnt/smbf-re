@@ -3,7 +3,7 @@ levels are numbered from 0 to 11. 0 to 5 being the light levels and 6 to 11 the
 dark ones.
 
 The process of generating the light levels goes:
-1) set the RNG state depending on the seed
+1) set the RNG state to be the seed
 2) generate all the chapters structures, that is which levels will contain the
     warpzones and pacifiers
 3) for each light level:
@@ -42,28 +42,21 @@ random_state = 0x0
 
 def set_random_seed(seed):
     global random_state
-    random_state = max(seed % 0x7FFFFFFF, 1)
+    random_state = max(seed % 0x7fffffff, 1)
 
 
 def rand_int(m):
-    """ random integer between 0 and m included """
-    # This is an unnecessarily convoluted reformulation of boost's minrand_std
-    # linear congruential RNG...I noticed after the fact.
+    """ random integer between 0 and m included using minstd_rand """
     if m == 0:
         return 0
-    divisor = 0x7FFFFFFE // (m + 1)
+    divisor = 0x7ffffffe // (m + 1)
     r = m + 1
 
     def update():
         global random_state
         nonlocal r
-        a = random_state * 0xBC8F
-        q = (a * 0x200000005) >> 0x40
-        r = (a - q) >> 1
-        r = (r + q) >> 0x1E
-        r = a - r * 0x7FFFFFFF
-        random_state = r - (r >> 0x20)
-        r = (r - 1) // divisor
+        random_state = (0xbc8f * random_state) % 0x7fffffff
+        r = (random_state - 1) // divisor
 
     while r > m:
         update()
@@ -79,14 +72,6 @@ def rand_bool(probability):
 def level_generation_seed(seed, chapter, level):
     r = (chapter + 1) * seed + (level + 1)
     return r % 0x100000000
-
-
-def chapters_generation_seed(seed):
-    d = (seed * 3) >> 0x20
-    r = (seed - d) >> 1
-    r = (r + d) >> 0x1E
-    r = r * 0x7FFFFFFF
-    return (seed - r) % 0x100000000
 
 
 class Chunk:
@@ -222,7 +207,7 @@ def generate_chapters_structure(seed):
     1) choose randomly a warpzone chunk
     2) choose 6 pacifier chunks among those that remain
     """
-    set_random_seed(chapters_generation_seed(seed))
+    set_random_seed(seed)
     result = []
     for chapter in range(5):
         available_levels = special_levels(chapter)
