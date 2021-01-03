@@ -42,11 +42,13 @@ random_state = 0x0
 
 def set_random_seed(seed):
     global random_state
-    random_state = max(1, seed)
+    random_state = max(seed % 0x7FFFFFFF, 1)
 
 
 def rand_int(m):
     """ random integer between 0 and m included """
+    # This is an unnecessarily convoluted reformulation of boost's minrand_std
+    # linear congruential RNG...I noticed after the fact.
     if m == 0:
         return 0
     divisor = 0x7FFFFFFE // (m + 1)
