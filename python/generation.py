@@ -112,14 +112,69 @@ class Chapter:
     def any_par_time(self):
         levels = sorted(self.levels, key=lambda l: l.par_time())
         return sum(level.par_time() for level in levels[:4])
+    
+    # light levels needed to collect all pacifiers
+    # includes light levels needed to complete to unlock a dark level with pacifier
+    def light_levels_for_all_pacifiers(self):
+        unique_levels = set()
+        for i in self.pacifiers:
+            unique_levels.add(i % 6)
+        
+        other_levels = []
+        for i in range(6):
+            if i not in unique_levels:
+                other_levels.append({ 'index': i, 'par_time': self.levels[i].par_time() })
 
+        other_levels = sorted(other_levels, key=lambda l: l['par_time'])
 
+        if (len(unique_levels) == 3):
+            unique_levels.add(other_levels[0]['index'])
+
+        return unique_levels
+    
+    def dark_levels_for_all_pacifiers(self):
+        levels = []
+        for i in self.pacifiers:
+            if i not in self.light_levels_for_all_pacifiers():
+                levels.append(i)
+
+        return levels
+
+    # light and dark levels needed to collect all pacifiers
+    def all_pacifier_route(self):
+        levels = []
+        for i in self.light_levels_for_all_pacifiers():
+            levels.append(i)
+        
+        for i in self.dark_levels_for_all_pacifiers():
+            levels.append(i)
+        
+        return levels
+        
+    # sum of level par times needed to get all pacifiers
+    def thirty_par_time(self):
+        par_time = 0
+        for i in self.light_levels_for_all_pacifiers():
+            par_time = par_time + self.levels[i].par_time()
+        
+        # TODO: get actual dark par times, this just assumes 90s for each
+        par_time = par_time + (len(self.dark_levels_for_all_pacifiers()) * 90)
+        return par_time
+
+    
 class File:
     def __init__(self, seed, chapters):
         self.seed, self.chapters = seed, chapters
 
     def par_time(self):
         return sum(chapter.par_time() for chapter in self.chapters)
+    
+    # sum of level par times needed to get all pacifiers
+    def thirty_par_time(self):
+        return sum(chapter.thirty_par_time() for chapter in self.chapters)
+    
+    def number_levels_for_all_pacifiers(self):
+        return sum(len(chapter.all_pacifier_route()) for chapter in self.chapters)
 
     def difficulty(self):
         return sum(chapter.difficulty() for chapter in self.chapters) / len(
@@ -128,20 +183,23 @@ class File:
 
     def any_par_time(self):
         return sum(chapter.any_par_time() for chapter in self.chapters)
-
+    
     def summary(self):
         s = (
             f"\nseed: {hex(self.seed)}\n"
             f"any% par time: {round(self.any_par_time(), 2)}\n"
+            f"30p par time: {round(self.thirty_par_time(), 2)} ({self.number_levels_for_all_pacifiers()} total levels)\n"
         )
         for i, chapter in enumerate(self.chapters):
             s += (
                 f"\nchapter {i + 1} - any% par time "
-                f"{round(chapter.any_par_time(), 2)}\n"
+                f"{round(chapter.any_par_time(), 2)}"
+                f" - 30p par time {round(chapter.thirty_par_time(), 2)}\n"
             )
             s += (
                 f"\twarpzone: {chapter.warpzone + 1} - pacifiers: "
                 f"{[i + 1 for i in chapter.pacifiers]}\n"
+                f"\t30p route: {[i + 1 for i in chapter.all_pacifier_route()]}\n"
             )
             for j, level in enumerate(chapter.levels):
                 s += (
