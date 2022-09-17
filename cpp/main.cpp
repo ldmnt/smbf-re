@@ -26,6 +26,7 @@ float SPECIAL_LEVEL_PROBABILITY_INCREMENT = 1.0f / 6;
 vector<int> special_levels_0{ 3, 4, 5, 6, 7, 8, 9, 10, 11 };
 vector<int> special_levels_n{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
 vector<int> difficulties{ 8, 9, -1, -1, -1, -1, -1 };
+int MAX_DIFFICULTY = 4;
 
 pair<int, unordered_set<int>> chapters_structure[5];  // warpzone and set of pacifiers
 int special_indices[7];  // used temporarily during chapter structure construction
@@ -103,7 +104,7 @@ LevelData LoadLevelData(string path) {
     getline(ss, val, '\n');
     c.has_pacifier = stoi(val);
     level_data.chunks[i].push_back(c);
-    if (i < 4) {
+    if (i < MAX_DIFFICULTY) {
       int j = level_data.chunks[i].size() - 1;
       if (c.has_warpzone)
         level_data.warpzone_chunks.push_back(make_pair(i, j));
@@ -256,7 +257,7 @@ float GenerateLevelParTime(int initial_random_state, const LevelData& level_data
         generate_pacifier = false;
       }
       else {
-        int i = RandInt(3);
+        int i = RandInt(MAX_DIFFICULTY - 1);
         const vector<Chunk>& chunks = chunk_data[i];
         int j = RandInt(chunks.size() - n_selected[i] - 1);
         auto pair = make_pair(i, j);
